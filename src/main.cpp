@@ -138,7 +138,37 @@ int main() {
         //
         // Use SOFT_LIMIT_PERCENT and HARD_LIMIT_PERCENT to parameterize the green and red
         // line positions.
-        camera.setCameraCenter({player.position.x, WINDOW_HEIGHT * 0.5f});
+        // camera.setCameraCenter({player.position.x, WINDOW_HEIGHT * 0.5f});
+        float playerXPercent = camera.worldToWindowPercent(player.position).x;
+        // Soft exclusion zones
+        if (playerXPercent < SOFT_LIMIT_PERCENT) {
+            float error = (SOFT_LIMIT_PERCENT - playerXPercent);
+            // Check if the error is less than 1 pixel, if so, set the camera to the soft limit to prevent infinite updates
+            if (error * WINDOW_WIDTH < 1.f) {
+                camera.setCameraPercent({player.position.x, WINDOW_HEIGHT * 0.5f}, {SOFT_LIMIT_PERCENT, 0.5f});
+            } else {
+                // Move camera left by the amount of the soft limit minus the player's x position, multiplied by the soft camera alpha
+                camera.translateWindowPercent({-error * SOFT_CAMERA_ALPHA, 0});
+            }
+        } else if (playerXPercent > 1.f - SOFT_LIMIT_PERCENT) {
+            float error = (playerXPercent - (1.f - SOFT_LIMIT_PERCENT));
+            // Check if the error is less than 1 pixel, if so, set the camera to the soft limit to prevent infinite updates
+            if (error * WINDOW_WIDTH < 1.f) {
+                camera.setCameraPercent({player.position.x, WINDOW_HEIGHT * 0.5f}, {1.f - SOFT_LIMIT_PERCENT, 0.5f});
+            } else {
+                // Move camera right by the amount of the player's x position minus the soft limit, multiplied by the soft camera alpha
+                camera.translateWindowPercent({error * SOFT_CAMERA_ALPHA, 0});
+            }
+        }
+
+        // Hard exclusion zones
+        playerXPercent = camera.worldToWindowPercent(player.position).x;
+        if (playerXPercent < HARD_LIMIT_PERCENT) {
+            camera.setCameraPercent({player.position.x, WINDOW_HEIGHT * 0.5f}, {HARD_LIMIT_PERCENT, 0.5f});
+        } else if (playerXPercent > 1.f - HARD_LIMIT_PERCENT) {
+            camera.setCameraPercent({player.position.x, WINDOW_HEIGHT * 0.5f}, {1.f - HARD_LIMIT_PERCENT, 0.5f});
+        }
+        
 
         worldView.setCenter(camera.getCameraCenter());
         window.clear(sf::Color::Black);
